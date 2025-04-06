@@ -1,30 +1,33 @@
-import argparse
-import asyncio
-import logging
-from apps.web_crawler.crawl import crawl
 
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+import sys
+import os
+from apps.web_crawler.crawl import scrape_building_detail, scrape_multiple_buildings
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="python main.py --include_inner_url"
-    )
+    if len(sys.argv) < 2:
+        print(" Usage: python main.py --input <URL or .txt file>")
+        return
 
-    parser.add_argument(
-        "--include_inner_url",
-        action="store_true",
-        help="If provided, include the inner URL in processing."
-    )
+    if sys.argv[1] != "--input":
+        print(" Invalid argument. Use --input")
+        return
 
-    args = parser.parse_args()
+    input_arg = sys.argv[2]
 
-    if args.include_inner_url:
-        logger.warning("The --include_inner_url flag was set!")
-        asyncio.run(crawl(include_inner_url=True))
+    if input_arg.endswith(".txt") and os.path.exists(input_arg):
+        with open(input_arg, "r", encoding="utf-8") as f:
+            urls = [line.strip() for line in f if line.strip()]
+        if not urls:
+            print("⚠️ No URLs found in the file.")
+            return
+        print(f" Running in multi-url mode with {len(urls)} links from {input_arg}")
+        scrape_multiple_buildings(urls)
+
+    elif input_arg.startswith("http"):
+        print(" Running in single-url mode.")
+        scrape_building_detail(input_arg)
     else:
-        logger.warning("The --include_inner_url flag was NOT set.")
-        asyncio.run(crawl(include_inner_url=False))
+        print(" Invalid input. Provide a URL or path to a .txt file.")
 
 if __name__ == "__main__":
     main()

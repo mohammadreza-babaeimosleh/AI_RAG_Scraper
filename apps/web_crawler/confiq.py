@@ -6,6 +6,8 @@ from crawl4ai.async_dispatcher import SemaphoreDispatcher
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 from apps.web_crawler.utils import RateLimiter
 
+import platform
+
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Tuple, List
@@ -27,20 +29,16 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
-# Create a single global settings object
 settings = Settings()
 
 rate_limiter = RateLimiter(
-        base_delay=settings.BASE_DELAY,  
-        max_delay=settings.MAX_DELAY,        
-        max_retries=settings.MAX_RETRIES,         
-        rate_limit_codes=settings.RATE_LIMIT_CODES  
-    )
+    base_delay=settings.BASE_DELAY,  
+    max_delay=settings.MAX_DELAY,        
+    max_retries=settings.MAX_RETRIES,         
+    rate_limit_codes=settings.RATE_LIMIT_CODES  
+)
 
-monitor = CrawlerMonitor(
-        max_visible_rows=settings.CRAWLER_MONITOR_MAX_DISPLAY_ROWS,
-        display_mode=DisplayMode.DETAILED 
-    )
+monitor = CrawlerMonitor() if platform.system() != "Windows" else None
 
 scorer = KeywordRelevanceScorer(
     keywords=["crawl", "example", "async", "configuration"],
@@ -51,22 +49,22 @@ strategy = BestFirstCrawlingStrategy(
     max_depth=settings.SEARCH_DEPTH,
     include_external=False,
     url_scorer=scorer,
-    max_pages=1000,   
+    max_pages=1000,
 )
 
 browser_config = BrowserConfig(headless=True, verbose=False)
 
 run_config = CrawlerRunConfig(
-        deep_crawl_strategy=BFSDeepCrawlStrategy(
-            max_depth=2, 
-            include_external=False
-        ),
-        scraping_strategy=LXMLWebScrapingStrategy(),
-        verbose=True
-    )
+    deep_crawl_strategy=BFSDeepCrawlStrategy(
+        max_depth=2,
+        include_external=False
+    ),
+    scraping_strategy=LXMLWebScrapingStrategy(),
+    verbose=True
+)
 
 dispatcher = SemaphoreDispatcher(
-        semaphore_count=settings.MAX_CONCURRENT_REQUESTS,
-        rate_limiter=rate_limiter,
-        monitor=monitor,
+    semaphore_count=settings.MAX_CONCURRENT_REQUESTS,
+    rate_limiter=None,
+    monitor=monitor,
 )
