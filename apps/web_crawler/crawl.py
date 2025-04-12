@@ -1,11 +1,25 @@
 import asyncio
-from bs4 import BeautifulSoup
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+import os
+import csv
 from apps.web_crawler.utils import save_building_markdown
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from bs4 import BeautifulSoup
+
+def read_links_from_csv(filename="dubai_buildings_links.csv"):
+    urls = []
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            csv_reader = csv.reader(f)
+            next(csv_reader, None)  
+            for row in csv_reader:
+                if row and row[0].startswith("http"):
+                    urls.append(row[0])
+    else:
+        print(f"File {filename} not found.")
+    return urls
 
 async def extract_and_save(crawler, url: str, output_name: str = "building_detail.md"):
     run_config = CrawlerRunConfig(extraction_strategy=None, cache_mode=CacheMode.BYPASS)
-
     result = await crawler.arun(url, config=run_config)
     html = result.html
     soup = BeautifulSoup(html, "html.parser")
@@ -51,22 +65,24 @@ async def extract_and_save(crawler, url: str, output_name: str = "building_detai
     save_building_markdown(markdown_content, output_name)
     print(f" Saved: {output_name}")
 
-def scrape_building_detail(url: str, output_name: str = "building_detail.md"):
-    async def run():
-        browser_config = BrowserConfig(headless=True, verbose=True)
-        async with AsyncWebCrawler(config=browser_config) as crawler:
-            await extract_and_save(crawler, url, output_name)
-    asyncio.run(run())
+async def run_crawler_process():
+    print(" Starting the crawler process.")
+    
+    urls = read_links_from_csv("dubai_buildings_links.csv")
+    if not urls:
+        print(" No links found in the CSV file.")
+        return
 
-def scrape_multiple_buildings(urls: list):
-    async def run_all():
-        browser_config = BrowserConfig(headless=True, verbose=True)
-        async with AsyncWebCrawler(config=browser_config) as crawler:
-            for url in urls:
-                slug = url.strip('/').split('/')[-1]
-                filename = f"{slug}.md"
-                try:
-                    await extract_and_save(crawler, url, output_name=filename)
-                except Exception as e:
-                    print(f" Failed for {url}: {e}")
-    asyncio.run(run_all())
+    print(f" Found {len(urls)} URLs in the CSV file.")
+    browser_config = BrowserConfig(headless=True, verbose=True)
+
+    async with AsyncWebCrawler(config=browser_config) as crawler:
+        for url in urls:
+            slug = url.strip('/').split('/')[-1]
+            filename = f"{slug}.md"
+            try:
+                await extract_and_save(crawler, url, output_name=filename)
+            except Exception as e:
+                print(f" Failed for {url}: {e}")
+    
+    print(" All links processed.")

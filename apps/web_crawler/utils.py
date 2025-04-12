@@ -62,6 +62,8 @@ def process_result(result, idx=0):
         f.write(result.markdown)
 
 
+import os
+
 def save_building_markdown(content: str, filename: str = "building_detail.md"):
     output_folder = "./output"
     os.makedirs(output_folder, exist_ok=True)
@@ -69,3 +71,4 @@ def save_building_markdown(content: str, filename: str = "building_detail.md"):
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
+
