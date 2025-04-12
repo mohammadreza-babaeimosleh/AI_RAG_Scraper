@@ -1,30 +1,13 @@
-import argparse
 import asyncio
-import logging
-from apps.web_crawler.crawl import crawl
+from apps.building_scraper.crawler import crawl_dubai_buildings
+from apps.web_crawler.crawl import run_crawler_process
 
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+async def main():
+    print(" STEP 1: Crawling buildings...")
+    crawl_dubai_buildings() 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="python main.py --include_inner_url"
-    )
-
-    parser.add_argument(
-        "--include_inner_url",
-        action="store_true",
-        help="If provided, include the inner URL in processing."
-    )
-
-    args = parser.parse_args()
-
-    if args.include_inner_url:
-        logger.warning("The --include_inner_url flag was set!")
-        asyncio.run(crawl(include_inner_url=True))
-    else:
-        logger.warning("The --include_inner_url flag was NOT set.")
-        asyncio.run(crawl(include_inner_url=False))
+    print("\n STEP 2: Scraping building content...")
+    await run_crawler_process()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
